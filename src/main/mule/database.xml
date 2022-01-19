@@ -62,6 +62,7 @@ output application/csv
 payload]]></ee:set-payload>
 			</ee:message>
 		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="573dc3c1-692f-44cc-a6ad-c7a24e338ad3" message="flow ended"/>
 		<file:write doc:name="Write" doc:id="b43de5fe-02d3-4e7d-8d28-f81eeff3dcc4" config-ref="File_Config" path="C:\Users\ranga\Desktop\abc\ranga\emp2.csv" mode="APPEND"/>
 		<logger level="INFO" doc:name="Logger" doc:id="437b89f9-3db4-4795-8731-90f4215922bd" message="#[payload]" />
 		<error-handler>
