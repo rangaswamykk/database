@@ -1,0 +1,11 @@
+http:
+ host: "localhost"
+ port: "8081"
+ path: "database"
+ 
+db:
+ host: "localhost"
+ port: "3306"
+ username: "root"
+ password: "![dt9bcuvVVjCKl3XsS8zn7bbW/Ne9i9z1V6eZ05/tTs0=]"
+ database: "swamy"

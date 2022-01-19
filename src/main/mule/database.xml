@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:file="http://www.mulesoft.org/schema/mule/file" xmlns:secure-properties="http://www.mulesoft.org/schema/mule/secure-properties"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/secure-properties http://www.mulesoft.org/schema/mule/secure-properties/current/mule-secure-properties.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="5235c80d-aaa5-40a8-81da-3f968fb94332" >
+		<http:listener-connection host="${secure::http.host}" port="${secure::http.port}" />
+	</http:listener-config>
+	<db:config name="Database_Config" doc:name="Database Config" doc:id="0043fcfd-dd22-439e-9b9f-e5dc2e6f4772" >
+		<db:my-sql-connection host="${secure::db.host}" port="${secure::db.port}" user="${secure::db.username}" password="${secure::db.password}" database="${secure::db.database}" />
+	</db:config>
+	<secure-properties:config name="Secure_Properties_Config" doc:name="Secure Properties Config" doc:id="e8523bbf-8443-4b28-8f67-67caf4808e40" file="dev.yaml" key="rangaswamy123456" />
+	<file:config name="File_Config" doc:name="File Config" doc:id="fe52a4ca-2ad5-46ff-bc16-9f01beeea523" />
+	<flow name="databaseFlow" doc:id="eb6b7893-930c-43a6-bfad-5f9f6cb50fcc" >
+		<http:listener doc:name="Listener" doc:id="bbe68a48-646d-4c93-bd0f-ba2f85ea53ba" config-ref="HTTP_Listener_config" path="${secure::http.path}">
+			<http:error-response >
+				<http:body ><![CDATA[#[payload]]]></http:body>
+			</http:error-response>
+		</http:listener>
+		<logger level="INFO" doc:name="Logger" doc:id="2b52837e-fa61-4b1e-a821-fc8009c10983" message="database start flow"/>
+		<db:select doc:name="Select" doc:id="301ae64e-d8a4-4709-909b-04e592002d05" config-ref="Database_Config">
+			<db:sql ><![CDATA[SELECT * FROM employee]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+	'id': attributes.queryParams.id
+}]]]></db:input-parameters>
+		</db:select>
+		<choice doc:name="Choice" doc:id="2907cb1d-3ecb-43c5-a8e2-3fe27577397e" >
+			<when expression="#[payload == []]">
+				<raise-error doc:name="Raise error" doc:id="0f5957cd-12b2-41d0-a526-0c4c3867d780" type="APP:INVALID ID" description="id not available in database"/>
+				<ee:transform doc:name="Transform Message" doc:id="cddb368e-78cd-4a5d-80a3-f7d01ecd2ba5">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	message: "id not available in db"
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+			</when>
+			<otherwise >
+				<ee:transform doc:name="Transform Message" doc:id="5fb9bc74-f67f-41fd-b856-1568b7ad40af">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+			</otherwise>
+		</choice>
+		<ee:transform doc:name="Transform Message" doc:id="38e27c05-d4a0-4937-b6d5-4e8c32b48b52" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/csv
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<file:write doc:name="Write" doc:id="b43de5fe-02d3-4e7d-8d28-f81eeff3dcc4" config-ref="File_Config" path="C:\Users\ranga\Desktop\abc\ranga\emp2.csv" mode="APPEND"/>
+		<logger level="INFO" doc:name="Logger" doc:id="437b89f9-3db4-4795-8731-90f4215922bd" message="#[payload]" />
+		<error-handler>
+			<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="4cc4d278-1d4d-48be-a5bb-52d5f2a87403" type="ANY">
+				<ee:transform doc:name="Transform Message" doc:id="a56218a9-430a-4f6a-aed7-0cd5682881b1" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	message: "sql syntax error"
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</on-error-continue>
+		</error-handler>
+	</flow>
+</mule>
